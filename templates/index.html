@@ -1,9 +1,6 @@
-<!doctype html>
-<html>
-<head>
-  <title>Social Media App</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
   <h1>Posts</h1>
   {% if current_user.is_authenticated %}
     <p>Logged in as {{ current_user.username }} | <a href="{{ url_for('logout') }}">Logout</a></p>
@@ -36,3 +33,5 @@
   {% endwith %}
 </body>
 </html>
+{% endblock %}
+
