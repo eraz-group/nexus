@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Profil de {{ user.username }}{% endblock %}
+{% block content %}
+<h1>Profil de {{ user.username }}</h1>
+{% if current_user.id != user.id %}
+  {% if is_following %}
+    <form action="{{ url_for('unsubscribe', user_id=user.id) }}" method="post">
+      <button class="btn btn-danger" type="submit">Se désabonner</button>
+    </form>
+  {% else %}
+    <form action="{{ url_for('subscribe', user_id=user.id) }}" method="post">
+      <button class="btn btn-primary" type="submit">S’abonner</button>
+    </form>
+  {% endif %}
+{% endif %}
+<hr>
+<h2>Posts</h2>
+{% for post in posts %}
+  <div class="post">
+    <div>
+      <strong>{{ user.username }}</strong>
+      <small class="text-muted">{{ post.timestamp.strftime('%d/%m/%Y %H:%M') }}</small>
+    </div>
+    <p>{{ post.content_text }}</p>
+    <!-- Section commentaires -->
+    <div class="mt-3">
+      <h6>Commentaires</h6>
+      {% for comment in post.comments %}
+        <div class="comment mb-2">
+          <small>
+            <strong><a href="{{ url_for('profile', username=comment.author.username) }}">{{ comment.author.username }}</a></strong>
+            - {{ comment.timestamp.strftime('%d/%m/%Y %H:%M') }}
+          </small>
+          <p>{{ comment.content|parse_comment|safe }}</p>
+        </div>
+      {% endfor %}
+      {% if current_user.is_authenticated %}
+      <form action="{{ url_for('comment', post_id=post.id) }}" method="post" class="mt-2">
+        <div class="input-group">
+          <input type="text" name="comment" class="form-control" placeholder="Ajouter un commentaire...">
+          <button class="btn btn-outline-secondary" type="submit">Envoyer</button>
+        </div>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}

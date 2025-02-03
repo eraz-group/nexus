@@ -1,25 +1,21 @@
-<!doctype html>
-<html>
-<head>
-  <title>Create New Post</title>
-</head>
-<body>
-  <h1>Create New Post</h1>
-  <form action="{{ url_for('new_post') }}" method="post">
-    <p>
-      <textarea name="content" rows="5" cols="40" placeholder="What's on your mind?" required></textarea>
-    </p>
-    <p><button type="submit">Post</button></p>
-  </form>
-  <p><a href="{{ url_for('index') }}">Back to Posts</a></p>
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      <ul>
-      {% for message in messages %}
-        <li>{{ message }}</li>
-      {% endfor %}
-      </ul>
-    {% endif %}
-  {% endwith %}
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Create New Post{% endblock %}
+{% block content %}
+<h1>Create New Post</h1>
+<form action="{{ url_for('new_post') }}" method="post">
+  <div class="mb-3">
+    <textarea name="content" class="form-control" rows="5" placeholder="What's on your mind?" required></textarea>
+  </div>
+  <button type="submit" class="btn btn-primary">Post</button>
+</form>
+<p><a href="{{ url_for('index') }}">Back to Posts</a></p>
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul class="alert alert-info">
+    {% for message in messages %}
+      <li>{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+{% endblock %}
