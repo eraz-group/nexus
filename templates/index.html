@@ -1,37 +1,47 @@
 {% extends "base.html" %}
-{% block title %}Login{% endblock %}
+{% block title %}Accueil{% endblock %}
 {% block content %}
-  <h1>Posts</h1>
-  {% if current_user.is_authenticated %}
-    <p>Logged in as {{ current_user.username }} | <a href="{{ url_for('logout') }}">Logout</a></p>
-    <p><a href="{{ url_for('new_post') }}">Create New Post</a></p>
-  {% else %}
-    <p><a href="{{ url_for('login') }}">Login</a> or <a href="{{ url_for('register') }}">Register</a></p>
-  {% endif %}
-  <hr>
-  {% for post in posts %}
+<h1>Posts</h1>
+{% if current_user.is_authenticated %}
+  <div class="mb-3">
+    <a class="btn btn-primary" href="{{ url_for('new_post') }}">Créer un nouveau post</a>
+  </div>
+{% endif %}
+{% for post in posts %}
+  <div class="post" id="post-{{ post.id }}">
     <div>
-      <p><strong>{{ post.author }}</strong> at {{ post.timestamp }}</p>
-      <p>{{ post.content }}</p>
+      <strong><a href="{{ url_for('profile', username=post.author.username) }}">{{ post.author.username }}</a></strong>
+      <small class="text-muted">{{ post.timestamp.strftime('%d/%m/%Y %H:%M') }}</small>
+    </div>
+    <p>{{ post.content_text }}</p>
+    <div class="mb-2">
       <form action="{{ url_for('like', post_id=post.id) }}" method="post" style="display:inline;">
-        <button type="submit">Like ({{ post.like_count }})</button>
+        <button class="btn btn-sm btn-outline-primary" type="submit">Like ({{ post.likes|length }})</button>
       </form>
       <form action="{{ url_for('repost', post_id=post.id) }}" method="post" style="display:inline;">
-        <button type="submit">Repost ({{ post.repost_count }})</button>
+        <button class="btn btn-sm btn-outline-secondary" type="submit">Repost ({{ post.reposts|length }})</button>
       </form>
-      <hr>
     </div>
-  {% endfor %}
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      <ul>
-      {% for message in messages %}
-        <li>{{ message }}</li>
+    <div class="mt-3">
+      <h6>Commentaires</h6>
+      {% for comment in post.comments %}
+        <div class="comment mb-2">
+          <small>
+            <strong><a href="{{ url_for('profile', username=comment.author.username) }}">{{ comment.author.username }}</a></strong>
+            - {{ comment.timestamp.strftime('%d/%m/%Y %H:%M') }}
+          </small>
+          <p>{{ comment.content|parse_comment|safe }}</p>
+        </div>
       {% endfor %}
-      </ul>
-    {% endif %}
-  {% endwith %}
-</body>
-</html>
+      {% if current_user.is_authenticated %}
+      <form action="{{ url_for('comment', post_id=post.id) }}" method="post" class="mt-2">
+        <div class="input-group">
+          <input type="text" name="comment" class="form-control" placeholder="Ajouter un commentaire...">
+          <button class="btn btn-outline-secondary" type="submit">Envoyer</button>
+        </div>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}
 {% endblock %}
-
