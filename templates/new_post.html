@@ -1,21 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Create New Post{% endblock %}
+{% block title %}Nouveau Post{% endblock %}
 {% block content %}
-<h1>Create New Post</h1>
+<h1>Créer un nouveau post</h1>
 <form action="{{ url_for('new_post') }}" method="post">
   <div class="mb-3">
-    <textarea name="content" class="form-control" rows="5" placeholder="What's on your mind?" required></textarea>
+    <textarea name="content" rows="5" class="form-control" placeholder="Quoi de neuf ?" required></textarea>
   </div>
-  <button type="submit" class="btn btn-primary">Post</button>
+  <button class="btn btn-primary" type="submit">Publier</button>
 </form>
-<p><a href="{{ url_for('index') }}">Back to Posts</a></p>
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <ul class="alert alert-info">
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %}
 {% endblock %}
