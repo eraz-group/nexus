@@ -293,7 +293,9 @@ def profile(username):
             if os.path.exists(local_temp_path):
                 os.remove(local_temp_path)
         post.content_text = content
-    return render_template('profile.html', user=user, is_following=is_following, posts=posts)
+    subscriber_count = user.subscribers.count()
+    subscription_count = user.subscriptions.count()
+    return render_template('profile.html', user=user, is_following=is_following, posts=posts, subscriber_count=subscriber_count, subscription_count=subscription_count)
 
 @app.route('/hashtag/<tag>')
 def hashtag(tag):

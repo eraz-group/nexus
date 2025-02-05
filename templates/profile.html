@@ -2,6 +2,7 @@
 {% block title %}Profil de {{ user.username }}{% endblock %}
 {% block content %}
 <h1>Profil de {{ user.username }}</h1>
+<p>Abonnés : {{ subscriber_count }} | Abonnements : {{ subscription_count }}</p>
 {% if current_user.id != user.id %}
   {% if is_following %}
     <form action="{{ url_for('unsubscribe', user_id=user.id) }}" method="post">
