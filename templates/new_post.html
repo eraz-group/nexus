@@ -6,6 +6,10 @@
   <div class="mb-3">
     <textarea name="content" rows="5" class="form-control" placeholder="Quoi de neuf ?" required></textarea>
   </div>
+  <div class="mb-3 form-check">
+    <input type="checkbox" class="form-check-input" id="public" name="public" checked>
+    <label class="form-check-label" for="public">Public</label>
+  </div>
   <button class="btn btn-primary" type="submit">Publier</button>
 </form>
 {% endblock %}

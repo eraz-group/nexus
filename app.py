@@ -42,23 +42,22 @@ class User(db.Model, UserMixin):
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.Text, nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content_text = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    likes = db.relationship('Like', backref='post', lazy=True)
-    reposts = db.relationship('Repost', backref='original_post', lazy=True)
-    comments = db.relationship('Comment', backref='post', lazy=True)
+    public = db.Column(db.Boolean, default=True)
+
+    #author = db.relationship('User', backref='posts')
 
 class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.datetime.now)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
 
 class Repost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.datetime.now)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     original_post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
 
@@ -66,14 +65,24 @@ class Subscription(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     subscriber_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     subscribed_to_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.datetime.now)
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.datetime.now)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+    sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
+    recipient = db.relationship('User', foreign_keys=[recipient_id], backref='received_messages')
 
 # ---------------------
 # Filtre Jinja2 pour formater les commentaires
@@ -98,7 +107,7 @@ def load_user(user_id):
 # ---------------------
 @app.route('/')
 def index():
-    posts = Post.query.options(joinedload(Post.author)).order_by(Post.timestamp.desc()).all()
+    posts = Post.query.filter_by(public=True).order_by(Post.timestamp.desc()).all()
     return render_template('index.html', posts=posts)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -147,13 +156,14 @@ def logout():
 def new_post():
     if request.method == 'POST':
         content = request.form['content']
+        public = 'public' in request.form
         if not content:
-            flash("Le contenu du post ne peut être vide.")
-            return redirect(url_for('new_post'))
-        post = Post(content=content, author=current_user)
+            flash("Le contenu ne peut être vide.")
+            return redirect(request.referrer or url_for('index'))
+        post = Post(content_text=content, author_id=current_user.id, public=public)
         db.session.add(post)
         db.session.commit()
-        flash("Post créé avec succès.")
+        flash("Post créé.")
         return redirect(url_for('index'))
     return render_template('new_post.html')
 
@@ -231,7 +241,7 @@ def profile(username):
     is_following = False
     if current_user.id != user.id:
         is_following = Subscription.query.filter_by(subscriber_id=current_user.id, subscribed_to_id=user.id).first() is not None
-    posts = Post.query.options(joinedload(Post.author)).filter_by(user_id=user.id).order_by(Post.timestamp.desc()).all()
+    posts = Post.query.options(joinedload(Post.author)).filter_by(author_id=user.id).order_by(Post.timestamp.desc()).all()
     subscriber_count = user.subscribers.count()
     subscription_count = user.subscriptions.count()
     return render_template('profile.html', user=user, is_following=is_following, posts=posts, subscriber_count=subscriber_count, subscription_count=subscription_count)
@@ -241,6 +251,28 @@ def hashtag(tag):
     search = f"%#{tag}%"
     comments = Comment.query.options(joinedload(Comment.author), joinedload(Comment.post)).filter(Comment.content.like(search)).order_by(Comment.timestamp.desc()).all()
     return render_template('hashtag.html', tag=tag, comments=comments)
+
+@app.route('/send_message', methods=['POST'])
+@login_required
+def send_message():
+    recipient_username = request.form['recipient']
+    body = request.form['body']
+    recipient = User.query.filter_by(username=recipient_username).first()
+    if recipient:
+        message = Message(sender_id=current_user.id, recipient_id=recipient.id, body=body)
+        db.session.add(message)
+        db.session.commit()
+        flash('Message sent successfully!', 'success')
+    else:
+        flash('Recipient not found.', 'danger')
+    return redirect(url_for('index'))
+
+@app.route('/messages')
+@login_required
+def messages():
+    received_messages = Message.query.filter_by(recipient_id=current_user.id).order_by(Message.timestamp.desc()).all()
+    sent_messages = Message.query.filter_by(sender_id=current_user.id).order_by(Message.timestamp.desc()).all()
+    return render_template('messages.html', received_messages=received_messages, sent_messages=sent_messages)
 
 # ---------------------
 # Lancement de l'application
