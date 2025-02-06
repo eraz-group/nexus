@@ -1,1 +1,4 @@
 instance/*
+*.log
+temp_1.txt
+*.pyc
