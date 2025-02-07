@@ -1,88 +1,23 @@
-from flask import Flask, render_template, redirect, url_for, request, flash
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, login_required, login_user, logout_user, current_user, UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 import datetime, os, re
 from sqlalchemy.orm import joinedload
 from internal.log import log_info, log_warning, log_error
+from datetime import datetime, timedelta
+from backend.extensions import db, login_manager
+from backend.models import User, Post, Like, Repost, Comment, Subscription, Message
+from flask_login import login_required, current_user, login_user, logout_user
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret-key'  # Changez cette clé en production
+
+# Configure your app (e.g., secret key, database URI, etc.)
+app.config['SECRET_KEY'] = 'your-secret-key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///social.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
 
-# Configuration de Flask-Login
-login_manager = LoginManager(app)
+# Initialize extensions
+db.init_app(app)
+login_manager.init_app(app)
 login_manager.login_view = 'login'
-
-# ---------------------
-# Modèles de données
-# ---------------------
-class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
-    
-    posts = db.relationship('Post', backref='author', lazy=True)
-    likes = db.relationship('Like', backref='user', lazy=True)
-    reposts = db.relationship('Repost', backref='user', lazy=True)
-    comments = db.relationship('Comment', backref='author', lazy=True)
-    
-    # Abonnements (les utilisateurs que l'on suit)
-    subscriptions = db.relationship('Subscription', foreign_keys='Subscription.subscriber_id', backref='follower', lazy='dynamic')
-    # Nos abonnés (les utilisateurs qui nous suivent)
-    subscribers = db.relationship('Subscription', foreign_keys='Subscription.subscribed_to_id', backref='followed', lazy='dynamic')
-    
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-        
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-class Post(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    content_text = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    public = db.Column(db.Boolean, default=True)
-
-    #author = db.relationship('User', backref='posts')
-
-class Like(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.now)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
-
-class Repost(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.now)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    original_post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
-
-class Subscription(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    subscriber_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    subscribed_to_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.now)
-
-class Comment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.now)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
-
-class Message(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    body = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-
-    sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
-    recipient = db.relationship('User', foreign_keys=[recipient_id], backref='received_messages')
 
 # ---------------------
 # Filtre Jinja2 pour formater les commentaires
@@ -94,6 +29,15 @@ def parse_comment(content):
     return content
 
 app.jinja_env.filters['parse_comment'] = parse_comment
+
+def compute_post_score(post):
+    likes_count = len(post.likes)
+    followers_count = post.author.subscribers.count()
+    score = likes_count * 1.1 + followers_count * 1.25
+    # Call datetime.now() to get current time instance
+    if post.author.verified and (datetime.now() - post.timestamp < timedelta(days=1)):
+        score += 0.5
+    return score
 
 # ---------------------
 # User loader pour Flask-Login
@@ -107,8 +51,36 @@ def load_user(user_id):
 # ---------------------
 @app.route('/')
 def index():
-    posts = Post.query.filter_by(public=True).order_by(Post.timestamp.desc()).all()
+    posts = Post.query.filter_by(public=True).all()
+    posts.sort(key=lambda post: (compute_post_score(post), post.timestamp), reverse=True)
     return render_template('index.html', posts=posts)
+
+@app.route('/request_verification', methods=['POST'])
+@login_required
+def request_verification():
+    if not current_user.verified:
+        if not current_user.verification_requested:
+            current_user.verification_requested = True
+            db.session.commit()
+            flash("Votre demande de vérification a été envoyée.")
+        else:
+            flash("Vous avez déjà demandé la vérification.")
+    else:
+        flash("Vous êtes déjà vérifié.")
+    return redirect(request.referrer or url_for('profile', username=current_user.username))
+
+@app.route('/verify/<int:user_id>', methods=['POST'])
+@login_required
+def verify_user(user_id):
+    if current_user.username != 'admin':
+        flash("Seul l'administrateur peut vérifier des utilisateurs.")
+        return redirect(request.referrer or url_for('index'))
+    user = User.query.get_or_404(user_id)
+    user.verified = True
+    user.verification_requested = False
+    db.session.commit()
+    flash(f"Utilisateur {user.username} a été vérifié.")
+    return redirect(request.referrer or url_for('profile', username=user.username))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -144,6 +116,52 @@ def login():
             return redirect(url_for('login'))
     return render_template('login.html')
 
+    # Language: Python
+@app.route('/api/v1/posts', methods=['GET'])
+def api_posts():
+    posts = Post.query.filter_by(public=True).all()
+    posts_json = []
+    for post in posts:
+        posts_json.append({
+            'id': post.id,
+            'author': post.author.username,
+            'content_text': post.content_text,
+            'timestamp': post.timestamp.isoformat(),
+            'likes': len(post.likes),
+            'comments': len(post.comments)
+        })
+    return jsonify(posts=posts_json)
+
+@app.route('/api/v1/profile/<username>', methods=['GET'])
+def api_profile(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    user_data = {
+        "id": user.id,
+        "username": user.username,
+        "verified": user.verified,
+        "subscriber_count": user.subscribers.count(),
+        "subscription_count": user.subscriptions.count(),
+        "posts": [{
+            "id": post.id,
+            "content_text": post.content_text,
+            "timestamp": post.timestamp.isoformat(),
+            "likes": len(post.likes),
+            "comments": len(post.comments)
+        } for post in user.posts]
+    }
+    return jsonify(profile=user_data)
+
+@app.route('/api/v1/login', methods=['POST'])
+def api_login():
+    username = request.form['username'].strip()
+    password = request.form['password']
+    user = User.query.filter_by(username=username).first()
+    if user and user.check_password(password):
+        login_user(user)
+        return jsonify({"status": "success", "message": "Connecté avec succès."})
+    else:
+        return jsonify({"status": "error", "message": "Nom d’utilisateur ou mot de passe incorrect."}), 400
+
 @app.route('/logout')
 @login_required
 def logout():
@@ -171,13 +189,15 @@ def new_post():
 @login_required
 def like(post_id):
     post = Post.query.get_or_404(post_id)
-    if Like.query.filter_by(user_id=current_user.id, post_id=post_id).first():
-        flash("Vous avez déjà liké ce post.")
+    like = Like.query.filter_by(user_id=current_user.id, post_id=post_id).first()
+    if like:
+        db.session.delete(like)
+        flash("Like retiré.")
     else:
         like = Like(user_id=current_user.id, post_id=post_id)
         db.session.add(like)
-        db.session.commit()
         flash("Post liké.")
+    db.session.commit()
     return redirect(request.referrer or url_for('index'))
 
 @app.route('/repost/<int:post_id>', methods=['POST'])
@@ -273,6 +293,15 @@ def messages():
     received_messages = Message.query.filter_by(recipient_id=current_user.id).order_by(Message.timestamp.desc()).all()
     sent_messages = Message.query.filter_by(sender_id=current_user.id).order_by(Message.timestamp.desc()).all()
     return render_template('messages.html', received_messages=received_messages, sent_messages=sent_messages)
+
+@app.route('/verified_requests')
+@login_required
+def verified_requests():
+    if current_user.username != 'admin':
+        flash("Seul l'administrateur peut accéder à cette page.")
+        return redirect(url_for('index'))
+    requests = User.query.filter_by(verification_requested=True, verified=False).all()
+    return render_template('verified_requests.html', requests=requests)
 
 # ---------------------
 # Lancement de l'application

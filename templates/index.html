@@ -13,7 +13,14 @@
       <div class="col-12 col-md-6 col-lg-4 mb-4">
         <div class="post" id="post-{{ post.id }}">
           <div>
-            <strong><a href="{{ url_for('profile', username=post.author.username) }}">{{ post.author.username }}</a></strong>
+            <strong>
+              <a href="{{ url_for('profile', username=post.author.username) }}">
+                {{ post.author.username }}
+              </a>
+              {% if post.author.verified %}
+                <span class="material-symbols-outlined">verified_user</span>
+              {% endif %}
+            </strong>
             <small class="text-muted">{{ post.timestamp.strftime('%d/%m/%Y %H:%M') }}</small>
           </div>
           <p>{{ post.content_text }}</p>
@@ -47,12 +54,12 @@
               </div>
             {% endfor %}
             {% if current_user.is_authenticated %}
-            <form action="{{ url_for('comment', post_id=post.id) }}" method="post" class="mt-2">
-              <div class="input-group">
-                <input type="text" name="comment" class="form-control" placeholder="Ajouter un commentaire...">
-                <button class="btn btn-outline-secondary" type="submit">Envoyer</button>
-              </div>
-            </form>
+              <form action="{{ url_for('comment', post_id=post.id) }}" method="post" class="mt-2">
+                <div class="input-group">
+                  <input type="text" name="comment" class="form-control" placeholder="Ajouter un commentaire...">
+                  <button class="btn btn-outline-secondary" type="submit">Envoyer</button>
+                </div>
+              </form>
             {% endif %}
           </div>
         </div>
