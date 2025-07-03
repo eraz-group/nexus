@@ -7,11 +7,6 @@
     <h1 class="feed-title ubuntu-bold" style="font-size:2.2em; color:#0d6efd; margin:0; letter-spacing:1px;">Fil d'actualités</h1>
   </div>
   <div style="height:4px; width:100px; background:linear-gradient(90deg,#0d6efd 60%,#e7f1ff 100%); border-radius:2px; margin:0 auto 2.5rem auto;"></div>
-  {% if current_user.is_authenticated %}
-    <div class="mb-3 text-center">
-      <a class="btn btn-primary" href="{{ url_for('new_post') }}">Créer un nouveau post</a>
-    </div>
-  {% endif %}
   <div class="row">
     {% for post in posts %}
       <div class="col-12 col-md-6 col-lg-4 mb-4">
