@@ -2,9 +2,13 @@
 {% block title %}Accueil{% endblock %}
 {% block content %}
 <div class="container">
-  <h1>Fil d'actualités</h1>
+  <div class="feed-title-container d-flex align-items-center justify-content-center" style="margin-bottom: 2.2rem; margin-top: 1.2rem;">
+    <span class="material-icons" style="font-size:2.2em; color:#0d6efd; margin-right:12px;">dynamic_feed</span>
+    <h1 class="feed-title ubuntu-bold" style="font-size:2.2em; color:#0d6efd; margin:0; letter-spacing:1px;">Fil d'actualités</h1>
+  </div>
+  <div style="height:4px; width:100px; background:linear-gradient(90deg,#0d6efd 60%,#e7f1ff 100%); border-radius:2px; margin:0 auto 2.5rem auto;"></div>
   {% if current_user.is_authenticated %}
-    <div class="mb-3">
+    <div class="mb-3 text-center">
       <a class="btn btn-primary" href="{{ url_for('new_post') }}">Créer un nouveau post</a>
     </div>
   {% endif %}

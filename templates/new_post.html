@@ -1,15 +1,45 @@
 {% extends "base.html" %}
 {% block title %}Nouveau Post{% endblock %}
 {% block content %}
-<h1>Créer un nouveau post</h1>
-<form action="{{ url_for('new_post') }}" method="post">
-  <div class="mb-3">
-    <textarea name="content" rows="5" class="form-control" placeholder="Quoi de neuf ?" required></textarea>
+<div class="main-content-newpost" style="margin-left:0; max-width:500px; margin:0 auto; padding-top:40px;">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mb-3">
+      {% for category, message in messages %}
+        <div class="alert {% if category == 'success' %}alert-success{% elif category == 'danger' or category == 'error' %}alert-danger{% else %}alert-info{% endif %} alert-dismissible fade show text-center" role="alert" style="font-size:1.05em;">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+      {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  <h1 class="ubuntu-bold mb-4" style="color:#0d6efd; font-size:2em;">Créer un nouveau post</h1>
+  <form action="{{ url_for('new_post') }}" method="post">
+    <div class="mb-3">
+      <textarea name="content" rows="5" class="form-control" placeholder="Quoi de neuf ?" required></textarea>
+    </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox" class="form-check-input" id="public" name="public" checked>
+      <label class="form-check-label" for="public">Public</label>
+    </div>
+    <button class="btn btn-primary w-100" type="submit">Publier</button>
+  </form>
+  <div class="ad-container d-flex justify-content-center align-items-center mt-4" style="min-height:90px;">
+    <div style="width:100%; max-width:320px; text-align:center;">
+      <script>
+(function(amtv){
+var d = document,
+    s = d.createElement('script'),
+    l = d.scripts[d.scripts.length - 1];
+s.settings = amtv || {};
+s.src = "//oilycoat.com/blX/VosId.G/lH0jYIWdcP/leomX9_udZXUOl_kRPlTRYE0/N/jHc/2MNtzzMoteNwjCQ/2xNAzYYx3/NxAL";
+s.async = true;
+s.referrerPolicy = 'no-referrer-when-downgrade';
+l.parentNode.insertBefore(s, l);
+})({})
+</script>
+    </div>
   </div>
-  <div class="mb-3 form-check">
-    <input type="checkbox" class="form-check-input" id="public" name="public" checked>
-    <label class="form-check-label" for="public">Public</label>
-  </div>
-  <button class="btn btn-primary" type="submit">Publier</button>
-</form>
+</div>
 {% endblock %}
