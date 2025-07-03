@@ -23,21 +23,117 @@
         background-color: #f5f7fa;
         color: #333;
       }
-      .navbar {
-        background-color: #ffffff;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 240px;
+        background: linear-gradient(180deg, #f8fafc 0%, #e7f1ff 100%);
+        box-shadow: 2px 0 12px rgba(13,110,253,0.07);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0;
+        z-index: 1000;
       }
-      .post {
-        background-color: #ffffff;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 20px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      .sidebar .logo-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 180px;
+        width: 100%;
       }
-      .comment {
-        margin-left: 20px;
-        border-left: 2px solid #eaeaea;
-        padding-left: 10px;
+      .sidebar .navbar-brand {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .sidebar .navbar-brand img {
+        height: 60px;
+        margin-bottom: 10px;
+      }
+      .sidebar .navbar-nav {
+        flex-direction: column;
+        width: 100%;
+        align-items: stretch;
+        gap: 8px;
+        padding: 0 0 20px 0;
+      }
+      .sidebar .nav-item {
+        width: 100%;
+      }
+      .sidebar .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #333;
+        padding: 14px 32px 14px 32px;
+        width: 100%;
+        border-radius: 0 24px 24px 0;
+        font-size: 1.08rem;
+        font-weight: 500;
+        background: none;
+        border: none;
+        transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+        box-shadow: none;
+        position: relative;
+      }
+      .sidebar .nav-link.active, .sidebar .nav-link:hover {
+        background: linear-gradient(90deg, #e7f1ff 60%, #d0e3ff 100%);
+        color: #0d6efd;
+        box-shadow: 2px 0 8px rgba(13,110,253,0.07);
+      }
+      .sidebar .nav-link .material-icons {
+        font-size: 1.4em;
+        color: #0d6efd;
+        opacity: 0.8;
+        transition: color 0.18s;
+      }
+      .sidebar .nav-link:hover .material-icons {
+        color: #084298;
+        opacity: 1;
+      }
+      .sidebar hr {
+        width: 80%;
+        margin: 18px auto 18px auto;
+        border: none;
+        border-top: 1.5px solid #e3e8ee;
+      }
+      @media (max-width: 768px) {
+        .sidebar {
+          position: static;
+          width: 100%;
+          height: auto;
+          flex-direction: row;
+          box-shadow: none;
+          padding: 0;
+        }
+        .sidebar .logo-container {
+          height: auto;
+          width: auto;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 10px;
+        }
+        .sidebar .navbar-nav {
+          flex-direction: row;
+          width: auto;
+          gap: 0;
+        }
+        .sidebar .nav-link {
+          border-radius: 0;
+          padding: 10px 12px;
+          margin-bottom: 0;
+          justify-content: center;
+        }
+        .sidebar hr {
+          display: none;
+        }
       }
   
       .ubuntu-light {
@@ -91,35 +187,45 @@
     </style>
   </head>
 <body>
-  <nav class="navbar navbar-expand-lg navbar-light mb-4">
-    <div class="container"><a class="navbar-brand title ubuntu-medium" href="{{ url_for('index') }}">
-        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="height: 30px; margin-right: 8px;">
+  <div class="sidebar">
+    <div class="logo-container">
+      <a class="navbar-brand title ubuntu-medium" href="{{ url_for('index') }}">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
+        <span style="font-size:1.3em; color:#0d6efd; font-weight:600; letter-spacing:1px;">Nexus</span>
       </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
-          {% if current_user.is_authenticated %}
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('profile', username=current_user.username) }}">{{ current_user.username }}</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('logout') }}">Déconnexion</a>
-          </li>
-          {% else %}
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('login') }}">Connexion</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('register') }}">Inscription</a>
-          </li>
-          {% endif %}
-        </ul>
-      </div>
     </div>
-  </nav>
-  <div class="container">
+    <ul class="navbar-nav">
+      {% if current_user.is_authenticated %}
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('profile', username=current_user.username) }}">
+          <span class="material-icons">person</span>
+          {{ current_user.username }}
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('logout') }}">
+          <span class="material-icons">logout</span>
+          Déconnexion
+        </a>
+      </li>
+      {% else %}
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('login') }}">
+          <span class="material-icons">login</span>
+          Connexion
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('register') }}">
+          <span class="material-icons">person_add</span>
+          Inscription
+        </a>
+      </li>
+      {% endif %}
+    </ul>
+    <hr>
+  </div>
+  <div class="main-content">
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <div class="alert alert-info">
