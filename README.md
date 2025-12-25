@@ -9,4 +9,4 @@ Contribution stats:
 
 ![GitHub contributors](https://img.shields.io/github/contributors/eraz-group/nexus)
 
-https://img.shields.io/github/milestones/progress-percent/eraz-group/nexus/1
+![Milestone progres](https://img.shields.io/github/milestones/progress-percent/eraz-group/nexus/1)
